@@ -29,7 +29,7 @@ type Result struct {
 }
 
 func main() {
-	db, err := gorm.Open("mysql", "root:@/name_database?charset=utf8&parseTime=True")
+	db, err := gorm.Open("mysql", "root:root@/name_database?charset=utf8&parseTime=True")
 
 	checkErr(err)
 
@@ -46,18 +46,12 @@ func checkErr(err error)  {
 	return
 }
 
-func checkErrResponse(err error)  {
-	if err != nil{
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-}
-
 func handleRequest()  {
 	log.Println("Start the development server at http://127.0.0.1:9999")
 
 	router := mux.NewRouter().StrictSlash(true)
 
-	router.NotFoundHandler = http.HandleFunc(func(w http.ResponseWriter, r *http.Request) {
+	router.NotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusNotFound)
 
@@ -67,22 +61,21 @@ func handleRequest()  {
 		checkErr(err)
 		w.Write(respone)
 	})
-	router.MethodNotAllowedHandler = http.HandleFunc(func(w http.ResponseWriter, r *http.Request) {
+	router.MethodNotAllowedHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusMethodNotAllowed)
 
 		res := Result{Code: 405, Message: "Method not allowed"}
-		response, err := json.Marshal(res)
+		response, _ := json.Marshal(res)
 
-		checkErr(err)
 		w.Write(response)
 	})
 
-	router.HandleFunc("/api/products", createProduct).Method("POST")
-	router.HandleFunc("/api/products", getProducts).Method("GET")
-	router.HandleFunc("/api/products/{id}", getProductById).Method("GET")
-	router.HandleFunc("/api/products/{id}", updateProduct).Method("PUT")
-	router.HandleFunc("/api/products/{id}", deleteProduct).Method("DELETE")
+	router.HandleFunc("/api/products", createProduct).Methods("POST")
+	router.HandleFunc("/api/products", getProducts).Methods("GET")
+	router.HandleFunc("/api/products/{id}", getProductById).Methods("GET")
+	//router.HandleFunc("/api/products/{id}", updateProduct).Methods("PUT")
+	router.HandleFunc("/api/products/{id}", deleteProduct).Methods("DELETE")
 
 	log.Fatal(http.ListenAndServe(":9999", router))
 }
@@ -98,9 +91,8 @@ func createProduct(w http.ResponseWriter, r *http.Request)  {
 	db.Create(&product)
 
 	res := Result{Code: 200, Data: product, Message: "Created product successfully"}
-	result, err := json.Marshal(res)
+	result, _ := json.Marshal(res)
 
-	checkErrResponse(err)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -111,10 +103,8 @@ func getProducts(w http.ResponseWriter, r *http.Request)  {
 	products := []Product{}
 	db.Find(&products)
 
-	res := Result{Code: 200, Data: product, Message: "Getted product successfully"}
-	result, err := json.Marshal(res)
-
-	checkErrResponse(err)
+	res := Result{Code: 200, Data: products, Message: "Getted product successfully"}
+	result, _ := json.Marshal(res)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -137,9 +127,7 @@ func getProductById(w http.ResponseWriter, r *http.Request)  {
 	db.Model(&product).Updates(productUpdate)
 
 	res := Result{Code: 200, Data: product, Message: "Updated product successfully"}
-	result, err := json.Marshal(res)
-
-	checkErrResponse(err)
+	result, _ := json.Marshal(res)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -156,9 +144,7 @@ func deleteProduct(w http.ResponseWriter, r *http.Request)  {
 	db.Delete(&product)
 
 	res := Result{Code: 200, Data: product, Message: "Deleted product successfully"}
-	result, err := json.Marshal(res)
-
-	checkErrResponse(err)
+	result, _ := json.Marshal(res)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
