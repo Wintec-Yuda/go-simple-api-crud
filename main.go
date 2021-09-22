@@ -29,7 +29,7 @@ type Result struct {
 }
 
 func main() {
-	db, err := gorm.Open("mysql", "root:root@/name_database?charset=utf8&parseTime=True")
+	db, err := gorm.Open("mysql", "root:root@/simple_api?charset=utf8&parseTime=True")
 
 	checkErr(err)
 
@@ -74,7 +74,7 @@ func handleRequest()  {
 	router.HandleFunc("/api/products", createProduct).Methods("POST")
 	router.HandleFunc("/api/products", getProducts).Methods("GET")
 	router.HandleFunc("/api/products/{id}", getProductById).Methods("GET")
-	//router.HandleFunc("/api/products/{id}", updateProduct).Methods("PUT")
+	router.HandleFunc("/api/products/{id}", updateProduct).Methods("PUT")
 	router.HandleFunc("/api/products/{id}", deleteProduct).Methods("DELETE")
 
 	log.Fatal(http.ListenAndServe(":9999", router))
@@ -144,6 +144,27 @@ func deleteProduct(w http.ResponseWriter, r *http.Request)  {
 	db.Delete(&product)
 
 	res := Result{Code: 200, Data: product, Message: "Deleted product successfully"}
+	result, _ := json.Marshal(res)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(result)
+}
+
+func updateProduct(w http.ResponseWriter, r *http.Request)  {
+	param := mux.Vars(r)
+	id := param["id"]
+
+	payload, _ := ioutil.ReadAll(r.Body)
+
+	var productUpdate Product
+	json.Unmarshal(payload, &productUpdate)
+
+	var product Product
+	db.First(&product, id)
+	db.Model(&product).Updates(productUpdate)
+
+	res := Result{Code: 200, Data: product, Message: "Updated product successfully"}
 	result, _ := json.Marshal(res)
 
 	w.Header().Set("Content-Type", "application/json")
